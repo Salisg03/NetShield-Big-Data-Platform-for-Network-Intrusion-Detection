@@ -1,0 +1,73 @@
+networks:
+  hadoop-net:
+    driver: bridge
+
+services:
+  hadoop-master:
+    image: liliasfaxi/spark-hadoop:hv-2.7.2
+    container_name: hadoop-master
+    hostname: hadoop-master
+    ports:
+      - "9870:9870"
+      - "8088:8088"
+      - "7077:7077"
+    networks:
+      - hadoop-net
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./src:/src   # Partage le dossier contenant ton code Spark avec le master
+
+  hadoop-slave1:
+    image: liliasfaxi/spark-hadoop:hv-2.7.2
+    container_name: hadoop-slave1
+    hostname: hadoop-slave1
+    networks:
+      - hadoop-net
+    tty: true
+    stdin_open: true
+
+  hadoop-slave2:
+    image: liliasfaxi/spark-hadoop:hv-2.7.2
+    container_name: hadoop-slave2
+    hostname: hadoop-slave2
+    networks:
+      - hadoop-net
+    tty: true
+    stdin_open: true
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - hadoop-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - hadoop-net
+  cassandra:
+    image: cassandra:latest         
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+    networks:
+      - hadoop-net
+    volumes:
+      - ./dataset:/dataset
