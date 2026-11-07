@@ -3,56 +3,50 @@ import pandas as pd
 import time
 from cassandra.cluster import Cluster
 
-# 1. Configuration de la page Web
 st.set_page_config(page_title="NetShield Dashboard", layout="wide")
-st.title(" NetShield - Détection d'Intrusions en Temps Réel")
-st.markdown("Ce tableau de bord affiche les attaques détectées par **Apache Spark** et stockées dans **Cassandra**.")
+st.title(" NetShield - Moniteur de Trafic Réseau en Direct")
 
-# 2. Connexion à la base de données Cassandra
+# Connexion à Cassandra
 @st.cache_resource
 def get_cassandra_session():
-    # Il se connecte au port 9042 qu'on a exposé dans Docker
     cluster = Cluster(['localhost'], port=9042)
-    session = cluster.connect('netshield')
-    return session
+    return cluster.connect('netshield')
 
 session = get_cassandra_session()
-
-# 3. Création d'un espace vide qui va se rafraîchir en boucle
 placeholder = st.empty()
 
-# 4. Boucle infinie pour le Temps Réel
 while True:
-    # On exécute une requête SQL pour lire la table des alertes
     lignes = session.execute("SELECT * FROM alertes")
-    
-    # On transforme le résultat en tableau de données (DataFrame Pandas)
     df = pd.DataFrame(list(lignes))
     
-    # On injecte les données dans la page Web
     with placeholder.container():
         if not df.empty:
-            # On renomme les colonnes pour que ce soit plus joli
-            df.columns = ["Type d'Attaque", "Nombre de Paquets Bloqués"]
+            df.columns = ["Type de Trafic", "Nombre de Paquets"]
             
-            # Affichage de métriques en gros en haut de page
-            total_attaques = df["Nombre de Paquets Bloqués"].sum()
-            st.metric(label=" TOTAL DES REQUÊTES MALVEILLANTES BLOQUÉES", value=total_attaques)
+            # On sépare le trafic normal des attaques pour l'affichage
+            df_normal = df[df["Type de Trafic"] == "BENIGN"]
+            df_attaques = df[df["Type de Trafic"] != "BENIGN"]
             
-            # Affichage en deux colonnes
+            vol_normal = df_normal["Nombre de Paquets"].sum() if not df_normal.empty else 0
+            vol_attaques = df_attaques["Nombre de Paquets"].sum() if not df_attaques.empty else 0
+            
+            # --- LES DEUX GROS COMPTEURS EN HAUT ---
+            col_m1, col_m2 = st.columns(2)
+            col_m1.metric(label=" Trafic Sain Analysé (BENIGN)", value=int(vol_normal))
+            col_m2.metric(label=" Menaces Bloquées (DDoS / PortScan)", value=int(vol_attaques))
+            
+            st.markdown("---")
+            
+            # --- LES GRAPHIQUES ---
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.write("###  Détail des alertes")
+                st.write("###  Tableau de bord brut")
                 st.dataframe(df, use_container_width=True)
-                
             with col2:
-                st.write("###  Répartition des menaces")
-                # Un graphique en barres généré automatiquement
-                st.bar_chart(data=df, x="Type d'Attaque", y="Nombre de Paquets Bloqués")
-                
+                st.write("###  Répartition du Réseau")
+                st.bar_chart(data=df, x="Type de Trafic", y="Nombre de Paquets")
         else:
-            st.info(" Aucun trafic malveillant détecté pour le moment. En attente de données...")
-            
-    # Le dashboard fait une pause de 2 secondes avant de re-vérifier la base de données
+            with st.spinner(" Connexion au cluster... En attente des premiers paquets réseaux..."):
+                time.sleep(2)
+                
     time.sleep(2)

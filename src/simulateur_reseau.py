@@ -25,15 +25,14 @@ with open(FICHIER_CSV, mode='r', encoding='utf-8') as file:
     
     compteur = 0
     for ligne in reader:
-        # On envoie la ligne dans le tuyau Kafka
         producer.send(TOPIC_NAME, ligne)
-        
         compteur += 1
-        print(f"[{compteur}] Paquet réseau envoyé vers Kafka (IP Dest: {ligne.get(' Destination Port')}, Label: {ligne.get(' Label')})")
         
-        # On fait une micro-pause de 0.1 seconde pour simuler le temps réel
-        # (Sinon le script enverrait 1 million de lignes en 2 secondes !)
-        time.sleep(0.1)
+        # On n'affiche un message que tous les 500 paquets pour ne pas faire buguer l'écran !
+        if compteur % 500 == 0:
+            print(f" {compteur} paquets envoyés à Kafka...")
+        
+        time.sleep(0.009)
 
 print("Fin de la simulation.")
 producer.close()
