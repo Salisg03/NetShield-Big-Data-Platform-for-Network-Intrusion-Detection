@@ -1,38 +1,45 @@
 import csv
 import time
 import json
+import glob
 from kafka import KafkaProducer
 
-# 1. Configuration du Producer Kafka
-# Il se connecte au port 9092 (celui qu'on a ouvert dans le docker-compose)
 print("Connexion à Kafka en cours...")
 producer = KafkaProducer(
-        bootstrap_servers=['127.0.0.1:9092'],  # <-- Changement ici !
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
-    )
+    bootstrap_servers=['127.0.0.1:9092'],
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
 
-# Nom du "tuyau" dans Kafka (le Topic)
 TOPIC_NAME = 'trafic-reseau'
+fichiers_csv = glob.glob('dataset/*.csv')
+print(f" {len(fichiers_csv)} fichiers CSV trouvés. Début de la simulation...")
 
-# Chemin vers ton fichier téléchargé depuis Kaggle
-FICHIER_CSV = 'dataset/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv'
+compteur = 0
 
-print(f"Début de la simulation du trafic avec le fichier : {FICHIER_CSV}")
-
-# 2. Lecture du fichier et envoi ligne par ligne
-with open(FICHIER_CSV, mode='r', encoding='utf-8') as file:
-    reader = csv.DictReader(file) # Lit le CSV en associant les colonnes à leurs noms
+for fichier in fichiers_csv:
+    print(f"\n --- Ouverture du fichier : {fichier} ---")
     
-    compteur = 0
-    for ligne in reader:
-        producer.send(TOPIC_NAME, ligne)
-        compteur += 1
+    with open(fichier, mode='r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
         
-        # On n'affiche un message que tous les 500 paquets pour ne pas faire buguer l'écran !
-        if compteur % 500 == 0:
-            print(f" {compteur} paquets envoyés à Kafka...")
-        
-        time.sleep(0.009)
+        for ligne in reader:
+            # NETTOYAGE DES CLÉS 
+            # On enlève les espaces au début/fin et les caractères invisibles
+            ligne_propre = {}
+            for cle, valeur in ligne.items():
+                if cle is not None:
+                    cle_propre = str(cle).strip().replace('\ufeff', '')
+                    # On nettoie aussi la valeur !
+                    valeur_propre = str(valeur).strip() if valeur else ""
+                    ligne_propre[cle_propre] = valeur_propre
+            
+            producer.send(TOPIC_NAME, ligne_propre)
+            compteur += 1
+            
+            if compteur % 500 == 0:
+                print(f" {compteur} paquets envoyés à Kafka...")
+            
+            time.sleep(0.001)
 
-print("Fin de la simulation.")
+print("\n Tous les fichiers ont été lus et envoyés !")
 producer.close()

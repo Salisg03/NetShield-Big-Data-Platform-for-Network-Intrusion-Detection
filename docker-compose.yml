@@ -16,7 +16,7 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - ./src:/src   # Partage le dossier contenant ton code Spark avec le master
+      - ./src:/src   # Partage le dossier contenant notre code Spark avec le master
 
   hadoop-slave1:
     image: liliasfaxi/spark-hadoop:hv-2.7.2
