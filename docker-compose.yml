@@ -17,6 +17,7 @@ services:
     stdin_open: true
     volumes:
       - ./src:/src   # Partage le dossier contenant notre code Spark avec le master
+      - ./dataset:/dataset  
 
   hadoop-slave1:
     image: liliasfaxi/spark-hadoop:hv-2.7.2

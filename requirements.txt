@@ -1,0 +1,8 @@
+# Librairies pour le Simulateur Réseau
+kafka-python-ng
+
+# Librairies pour le Dashboard (SOC)
+streamlit
+pandas
+cassandra-driver
+pyasyncore
