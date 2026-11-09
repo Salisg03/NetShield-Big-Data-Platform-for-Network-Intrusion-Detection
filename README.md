@@ -9,9 +9,9 @@ L'objectif de ce projet est de concevoir une **Architecture Lambda** complète c
 3. **Serving Layer :** Stocker les résultats dans une base NoSQL hautement disponible.
 4. **Visualisation :** Exposer ces deux vues (Temps Réel & Batch) via un Dashboard interactif.
 
-##  2. Le Jeu de Données
+## 📊 2. Le Jeu de Données
 Nous utilisons le dataset **CIC-IDS-2017** (Université du Nouveau-Brunswick). Il comporte 79 caractéristiques réseau (Port, Durée du flux...) et un label cible (`BENIGN` ou type d'attaque : `DDoS`, `PortScan`, etc.).
-
+*Note : Pour des raisons de limitation de taille sur GitHub, les fichiers CSV massifs de Kaggle ne sont pas hébergés. Nous avons développé un script `creer_echantillon.py` qui génère automatiquement un `echantillon_historique.csv` de 1000 lignes (70% de trafic sain et 30% d'attaques). Cet échantillon est utilisé par le Job Batch pour démontrer l'analyse de l'historique dans HDFS.*
 ---
 
 ##  3. Architecture et Choix Technologiques
@@ -38,14 +38,16 @@ Notre infrastructure est entièrement conteneurisée (Docker) et repose sur :
 ```text
 📦 Projet_BigData_NetShield
  ┣ 📂 dataset
- ┃ ┗ 📜 *.csv                 # Fichiers bruts CIC-IDS-2017 (Ignorés par Git)
+ ┃ ┣ 📜 *.csv                 # Fichiers bruts CIC-IDS-2017 (Ignorés par Git)
+ ┃ ┗ 📜 echantillon_historique.csv # Fichier de 1000 lignes pour la démo HDFS
  ┣ 📂 src
- ┃ ┣ 📜 simulateur_reseau.py  # Script Python : Envoie les CSV dans Kafka
+ ┃ ┣ 📜 simulateur_reseau.py  # Script Python : Envoie les CSV massifs dans Kafka en temps réel
  ┃ ┣ 📜 job_real_time.py      # Job Spark Streaming (Speed Layer)
- ┃ ┣ 📜 job_historique.py     # Job Spark Batch (Batch Layer via HDFS)
+ ┃ ┣ 📜 job_historique.py     # Job Spark Batch (Batch Layer lisant l'échantillon sur HDFS)
  ┃ ┗ 📜 app.py                # Dashboard Streamlit à onglets
- ┣ 📜 docker-compose.yml      # Orchestrateur de l'infrastructure (Hadoop, Kafka, Cassandra)
+ ┣ 📜 docker-compose.yml      # Orchestrateur de l'infrastructure
  ┣ 📜 requirements.txt        # Dépendances Python
+ ┣ 📜 creer_echantillon.py    # Générateur de l'échantillon proportionnel pour le Batch ( job historique )
  ┣ 📜 start_project.bat       # Script d'automatisation Windows "One-Click"
  ┗ 📜 README.md
  ```

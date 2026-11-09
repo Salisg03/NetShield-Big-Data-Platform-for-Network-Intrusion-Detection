@@ -1,1 +1,2 @@
 dataset/*.csv
+!dataset/echantillon_historique.csv
